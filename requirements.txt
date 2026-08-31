@@ -1,0 +1,22 @@
+# Core data handling
+pandas
+numpy
+ 
+# Visualization
+matplotlib
+seaborn
+ 
+# Machine learning
+scikit-learn
+shap
+ 
+# Config
+pyyaml
+ 
+# Model persistence
+joblib
+ 
+# API
+fastapi
+uvicorn
+pydantic
