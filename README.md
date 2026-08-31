@@ -1,138 +1,168 @@
-# fuel-crisis-price-forecasting
-ML forecasting pipeline predicting US gas and crude oil prices during the  2026 Iran War fuel crisis. Combines historical price data, crisis timeline  events, and Reddit sentiment as features. Built with a full production  structure (config, pipeline, FastAPI service, Docker) for reproducible  training and deployment.
-# 2026 Iran War Fuel Crisis — Dataset
+# Fuel Crisis Price Forecasting
 
-Real, sourced data on the global fuel/energy crisis triggered by the 2026 Iran war and the closure of the
-Strait of Hormuz (~20% of world oil trade). Collected/fetched on **5 July 2026**. Every number in every CSV
-below is traceable to a source that was actually fetched during this collection session — nothing was
-estimated, interpolated, or generated. Where a planned source could not be obtained, that is stated
-explicitly in **Known Limitations**, not silently patched over.
+**Forecasting US crude oil prices during the 2026 Iran War fuel crisis, 
+using real, sourced data.**
 
-Anchor keyword: the crisis is documented on Wikipedia as **"2026 Iran war fuel crisis"** — that is the
-named event this dataset is built around, not a generic multi-decade oil-price series (several of those
-already exist on Kaggle).
+---
 
-## Files
+## The Story (Non-Technical)
 
-### `crude_oil_prices.csv` (126 rows, 2026-01-02 to 2026-07-03, daily)
-Daily WTI (`CL=F`), Brent (`BZ=F`), and Henry Hub natural gas (`NG=F`) futures — open/high/low/close/volume
-for each. Source: Yahoo Finance via the `yfinance` Python library. No API key required. Spans a clean
-pre-crisis baseline (Jan 2026, WTI ~$56-58) through the shock (WTI peaks $112.95 on 2026-04-07, Brent peaks
-$118.35 on 2026-03-31) and the post-ceasefire decline back to the high-$60s/low-$70s by July. This price
-path is independently corroborated by the IEA Oil Market Reports below (IEA cites Brent near $120/bbl in
-March and North Sea Dated near $130/bbl in April) and by the EIA retail gasoline series moving in lockstep.
+In early 2026, a war broke out that led to the closure of the Strait of 
+Hormuz — a narrow shipping route through which nearly 20% of the world's 
+oil passes. This single event triggered a sharp global fuel crisis: oil 
+prices roughly doubled in a matter of weeks, gas prices at the pump spiked 
+across the United States (topping $5–6 per gallon in several states), and 
+the effects rippled through everyday life for months.
 
-### `us_gasoline_prices.csv` (26 rows, weekly, 2026-01-05 to 2026-06-29)
-Weekly U.S. retail **regular gasoline** prices (28 series: national average, all 5 PADD regions + sub-PADDs
-1A/1B/1C, 9 states — California, Colorado, Florida, Massachusetts, Minnesota, New York, Ohio, Texas,
-Washington — and 10 metro areas including Los Angeles, San Francisco, Chicago, Houston, New York City), plus
-**on-highway No. 2 diesel** prices (11 series: national + PADD regions + California). Source: EIA (U.S.
-Energy Information Administration) direct bulk `.xls` downloads — `pswrgvwall.xls` (gasoline, "Data 3: Regular
-All Areas All Formulations") and `psw18vwall.xls` (diesel, "Data 1"), both from
-https://www.eia.gov/petroleum/gasdiesel/ — no API key needed. US national regular gasoline rises from
-$2.796/gal (2026-01-05) to a peak of $4.50/gal (2026-05-11) before easing to $3.831/gal by 2026-06-29;
-California regular gasoline peaks at $5.969/gal on the same date (statewide average — consistent with,
-but not the same figure as, the widely reported "$6+/gallon in seven counties as of March 30" retail
-price spike, which was county-level, a finer granularity EIA does not publish).
+This project uses real, publicly-sourced data — oil futures prices, U.S. 
+gas prices by region, refinery activity, and even public discussion on 
+Reddit — to understand what happened during the crisis and build a model 
+that predicts oil prices based on the patterns in that data.
 
-### `us_refinery_and_trade_weekly.csv` (26 rows, weekly, 2026-01-02 to 2026-06-26)
-National weekly refinery utilization (%), refinery crude inputs, gross inputs, operable capacity, crude oil
-imports/exports, and total petroleum product imports/exports (all thousand barrels/day). Source: EIA
-Petroleum Navigator historical series, direct `.xls` downloads (no API key): `WPULEUS3` (refinery
-utilization), `WCRRIUS2`, `WGIRIUS2`, `WOCLEUS2`, `WCRIMUS2`, `WCREXUS2`, `WRPIMUS2`, `WRPEXUS2`, `WTTNTUS2`
-from https://www.eia.gov/dnav/pet/. This is a bonus file beyond the original spec — it captures the supply
-side of the shock (net petroleum exports roughly doubled from about -3,300 kb/d in January to -6,700 kb/d in
-April as the U.S. absorbed demand redirected away from the closed Strait of Hormuz).
+### Why real data, not made-up numbers
 
-### `crisis_timeline.csv` (71 rows, 2026-02-26 to 2026-06-21)
-Columns: `date, region, event, description, source_name, source_url`. A cited, dated timeline of the crisis:
-war start (28 Feb 2026, per the IEA), the Strait of Hormuz closure, the Qatar LNG attacks, national reserve
-releases (Japan, New Zealand), fuel rationing (Slovenia, Australia), price-shock milestones, the 8 April
-ceasefire, and post-ceasefire developments through late June (China's reserve strategy, IEA's World Energy
-Investment 2026 report). **Sources and how they were used:** built from (a) the actual current wikitext of
-the English Wikipedia article "2026 Iran war fuel crisis" (fetched directly via `action=raw`, not summarized
-by an intermediary), using the article's own inline citations — the `source_url` in each row is the original
-news source Wikipedia cites (Reuters, BBC, NYT, Guardian, CNBC, Bloomberg, FT, WSJ, regional outlets, etc.),
-not the Wikipedia page itself; and (b) the IEA's own Oil Market Report PDFs for March, April, and May 2026
-(see below), fetched directly. **Important provenance note:** the ~65 news-source URLs embedded in the
-Wikipedia article were read as Wikipedia cites them — they were not independently re-fetched and re-verified
-article-by-article in this session (that would mean re-scraping ~65 separate news sites). Every date, figure,
-and quote in this file was checked programmatically against the raw Wikipedia wikitext and/or the IEA report
-text actually downloaded (see `raw_sources/`) before being included; nothing was transcribed from memory
-without that check.
+Every number in this dataset is traceable to an actual source — crude oil 
+prices from Yahoo Finance, gas and refinery data from the U.S. government's 
+Energy Information Administration, a timeline of crisis events built from 
+Wikipedia's own citations and official energy reports, and real Reddit 
+discussion threads. Where a piece of data genuinely couldn't be found (one 
+country's diesel price was missing from the source), that gap is left 
+honestly blank rather than guessed at.
 
-### `country_gas_price_comparison.csv` (170 rows, snapshot dated 2026-06-29)
-Columns: `country, gasoline_usd_per_liter, diesel_usd_per_liter, update_frequency, data_date`. Live retail
-pump-price snapshot (Octane-95 gasoline and regular diesel, USD/liter) for 170 countries, giving the
-"who's hit hardest" cross-country view (e.g., UK $2.003 gasoline / $2.216 diesel per liter; USA $1.108 /
-$1.233; Canada $1.311 / $1.330; Iran $0.029 / $0.006 — Iran's own domestic price, heavily subsidized and
-disconnected from the export-market shock). Source: globalpetrolprices.com `/gasoline_prices/` and
-`/diesel_prices/` pages, live on 2026-06-29 (per the page's own displayed date). **Collection method:** the
-site renders its price chart as positioned `<div>` elements (no accessible chart-data API in the page), so
-country labels and their paired price values were extracted via a headless-browser JS query that matched
-each label element to its price element by on-screen vertical position (`getBoundingClientRect().top`),
-verified to have **zero unmatched pairs out of 170** before being written to CSV. `update_frequency` records
-whether that country's series is marked "weekly" (`*` in the source) or "monthly" on the site. One data point
-is missing (Iraq has no diesel figure on the source site) — left blank rather than filled in.
+### What the project actually does
 
-### `reddit_sentiment.csv` (50 rows, 2026-02-17 to 2026-06-25)
-Columns: `subreddit, title, score, num_comments, posted_utc, permalink`. Top posts (by score, past year) from
-r/economy and r/energy on old.reddit.com matching crisis-related search terms, giving a real public-discourse
-angle spanning the pre-war build-up through the post-ceasefire period. Every row has a real, working
-`permalink` to the actual Reddit thread; scores and comment counts are what old.reddit.com displayed at
-scrape time (2026-07-05) and will have changed somewhat since (Reddit scores are live-updating; the number
-recorded is a snapshot, not a final value — this is stated here so it isn't mistaken for something else).
-r/personalfinance was also queried but returned no crisis-specific results for the search terms tried (see
-Limitations) and was dropped rather than padded with irrelevant posts. **Note on representativeness:** this
-is a top-sorted sample from two subreddits, not a random or statistically representative sample of public
-sentiment — treat it as a curated set of high-visibility discussion threads for qualitative reading, not as
-a measure of overall public opinion.
+1. **Explores the data** — looking at how prices moved before, during, and 
+   after the crisis, and figuring out what was most connected to the 
+   changes (which US regions were hit hardest, how different fuels 
+   reacted differently).
+2. **Builds a prediction model** — trains a model that learns from 
+   historical patterns to forecast oil prices, and rigorously checks 
+   whether its predictions can actually be trusted.
+3. **Is honest about the model's limits** — rather than just reporting a 
+   good-looking accuracy score, the project digs into *why* the model 
+   makes the predictions it does, and catches a real bias problem that a 
+   surface-level accuracy check would have missed entirely.
 
-## Known Limitations
+### Why this matters
 
-- **EIA API key not registered.** The EIA Open Data API (api.eia.gov) requires an emailed API key
-  (self-registration form at https://www.eia.gov/opendata/register.php). Completing that registration
-  requires access to a real inbox to retrieve the key, which this session did not do (this is flagged for
-  the user below as a possible follow-up, not silently worked around). Instead, all EIA data here was pulled
-  from EIA's public bulk `.xls` downloads, which require no key. These bulk files cover national, PADD-region,
-  state, and named-metro-area granularity for gasoline/diesel — they do **not** reach county-level granularity
-  (e.g., the specific California counties reported over $6/gallon), which the API might not provide either
-  (that figure appears to come from retail price-tracking services, not EIA).
-- **IEA Oil Market Report is behind a Cloudflare bot check.** Direct `curl`/`WebFetch` requests returned
-  HTTP 403 ("Just a moment..." challenge page). Resolved by loading the page in an actual browser (the
-  challenge auto-passed after a few seconds), then downloading the report's own free PDF link
-  (`iea.blob.core.windows.net/assets/.../OilMarketReport...pdf`) directly via `curl`. The March, April, and
-  May 2026 editions were obtained this way; April 2026 was IEA's own choice to make free ("exceptionally
-  provided free of charge in abridged format"), consistent with the elevated public interest in this crisis.
-- **globalpetrolprices.com historical/bulk time series is a paid product** ($0.35-$7.50 per data point per
-  their own pricing page, data_download.php). A pre-war baseline snapshot (Wayback Machine has an archived
-  capture from 2026-02-13, three weeks before the war) was attempted for a genuine before/after comparison,
-  but the archived page's label and price elements had inconsistent row heights (a rendering artifact of the
-  archived copy, confirmed by direct measurement), which broke the position-matching pairing method beyond
-  the first few rows (135/170 unmatched) — this was abandoned rather than risk silently mispairing a country
-  with the wrong price. `country_gas_price_comparison.csv` is therefore a single current (2026-06-29) snapshot,
-  not a time series. Getting a genuine pre-war baseline from this source would require either the paid data
-  product or a more robust archived-page extraction method.
-- **Reddit**: only r/economy and r/energy yielded clearly crisis-specific top posts for the search terms
-  tried; r/personalfinance did not (see above). The old.reddit.com JSON API was not tried since the HTML
-  search interface worked fine and was low-risk to scrape gently.
-- **No Kaggle upload performed.** This is a reviewed, local, ready-to-upload dataset folder — publishing to
-  Kaggle is a user action, per the task boundaries for this session.
+Fuel prices affect nearly everyone — transportation, heating, the price of 
+goods at the store. Understanding how a major global event moves prices, 
+and being able to model that impact honestly (including its flaws), is a 
+genuinely useful way to make sense of a real crisis using real data.
 
-## Possible follow-ups needing a human decision
+---
 
-- **EIA API key**: registering one (real name + email, key emailed) would unlock the full EIA Open Data API,
-  including some series not in the bulk `.xls` files. Given how complete the bulk-file coverage already is for
-  this dataset's scope, this is optional polish, not a gap.
-- **globalpetrolprices.com paid historical data**: would enable a real pre-war-vs-crisis country-level
-  comparison instead of a single snapshot, at ~$0.35/point (weekly) times however many countries/weeks are
-  wanted — a live purchase decision for the user, not made here.
+## The Technical Process
 
-## `raw_sources/`
-Kept for transparency/verification, not required to use the CSVs above:
-- `raw_sources/eia/` — the original `.xls` files downloaded from eia.gov, exactly as fetched.
-- `raw_sources/wikipedia_and_iea/` — `article_wikitext.txt` (raw wikitext of the Wikipedia article, fetched
-  `2026-07-05`) and the three IEA Oil Market Report PDFs (plus their extracted `.txt`) for March/April/May 2026.
+### 1. Exploratory Data Analysis
 
-## Total size
-~21 MB including `raw_sources/` (the CSVs themselves are under 100 KB combined).
+Before any modeling, the EDA had to answer basic data-quality questions: 
+missing values (one, documented and intentional — not filled in), and 
+outliers (present, but they turned out to *be* the crisis itself — the 
+actual price shock — not data errors to remove).
+
+The correlation analysis surfaced the single most important structural 
+fact in this dataset: **WTI and Brent crude columns correlate 0.96–0.99 
+with each other.** That one finding drove every downstream modeling 
+decision.
+
+Time series plots confirmed the shape directly — a stable pre-crisis 
+baseline, a sharp climb through March, a peak in early April, and a 
+gradual decline back down by July. Natural gas moved differently: a 
+brief, sharp spike in late January, unrelated in timing to crude oil's 
+slower build-up — and, notably, *negatively* correlated with crude oil 
+throughout.
+
+### 2. Why These Models, Specifically
+
+Model choice was a direct response to two things the EDA had already 
+revealed:
+
+- **Severe multicollinearity** (WTI/Brent at 0.96–0.99) meant the model 
+  needed to handle redundant, near-duplicate features gracefully.
+- **A very small dataset** (126 rows) meant a model prone to memorizing 
+  noise instead of learning real patterns was a genuine risk.
+
+This pointed toward **regularized linear models** — Lasso and Ridge, 
+since their built-in penalty terms directly counteract both problems: 
+they shrink coefficients to control complexity, and Lasso specifically can 
+zero out redundant features entirely. **KNN and SVR** were tested too — 
+KNN as a deliberate contrast (a model with *no* mechanism to handle 
+multicollinearity), SVR as a reasonable middle ground.
+
+This reasoning was documented *before* training, not after — the 
+prediction was that Lasso would win because of its feature-selection 
+property, not because it happened to score highest after the fact.
+
+### 3. What Actually Happened
+
+| Model | R² | 
+|---|---|
+| **Lasso** | **0.9129** |
+| SVR | 0.8414 |
+| Ridge | 0.8046 |
+| KNeighborsRegressor | **-0.6316** |
+
+Lasso won, as predicted. KNN's negative R² — worse than just guessing the 
+average — was the clearest possible demonstration of why distance-based 
+models struggle with highly correlated, small datasets.
+
+### 4. Deeper Tuning — and a Genuine Course Correction
+
+A wider hyperparameter search found a marginally better score (0.9148 vs 
+0.9129) at `alpha=1e-05` — almost no regularization at all. Rather than 
+accepting the "best" score blindly, checking the model's actual behavior 
+mattered more: feature importance and SHAP values showed the model 
+assigning large, *opposite-signed* coefficients to near-identical 
+WTI/Brent columns — a classic sign of an under-regularized model 
+compensating for multicollinearity rather than resolving it.
+
+Residual analysis confirmed something the R² score alone completely hid: 
+**the model was systematically underpredicting** on the test set — nearly 
+every residual was positive, not randomly scattered around zero. A high 
+R² measures whether predictions track the right *direction*; it says 
+nothing about whether they're consistently *biased*.
+
+**Decision:** the production model uses the more conservative `alpha=0.001` 
+— explicitly trading a small amount of CV score for a properly regularized, 
+more stable model. This is a deliberate, documented choice, not a 
+compromise made silently.
+
+### 5. Production Structure
+
+```
+forecasting/
+├── config/          # all settings — paths, target, model params
+├── processing/       # data loading, merging, feature/target creation
+├── pipeline.py        # the full training sequence, as a reusable class
+├── train_pipeline.py  # runs training, saves the model artifact
+└── predict.py          # loads the saved model, makes new predictions
+
+app/
+├── schemas.py          # API request/response shape
+├── api.py               # route definitions
+└── main.py               # FastAPI service
+```
+
+Config-driven throughout — changing the target column, model 
+hyperparameters, or data paths never requires touching the actual logic.
+
+## Key Takeaways
+
+- Multicollinearity and small sample size, both identified during EDA 
+  *before* any model was trained, correctly predicted which model would win.
+- A high R² is not the same as a trustworthy model — residual analysis 
+  caught a real, systematic bias R² alone completely hid.
+- The "best" hyperparameter by CV score wasn't automatically the right 
+  choice for production — regularization strength was chosen deliberately.
+
+## Repository Structure
+
+```
+├── data/raw/           # sourced, cited data files
+├── notebooks/           # EDA and modeling notebooks
+├── forecasting/           # production ML pipeline
+├── app/                     # FastAPI prediction service
+├── Dockerfile
+└── requirements.txt
+```
