@@ -1,4 +1,4 @@
-from config import settings
+from config.config import settings
 
 def create_x_and_y(master):
     target_col = settings["target"]["column"]

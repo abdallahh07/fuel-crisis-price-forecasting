@@ -4,7 +4,7 @@ from sklearn.preprocessing import StandardScaler
 
 from processing.data_manager import load_merge_data
 from processing.features import create_x_and_y
-from config import settings
+from config.config import settings
 
 
 class ForecastingPipeline:

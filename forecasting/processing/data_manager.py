@@ -1,5 +1,5 @@
 import pandas as pd
-from config import settings
+from config.config import settings
 
 def load_merge_data():
     crude_oil_path = settings["data"]["crude_oil_prices"]

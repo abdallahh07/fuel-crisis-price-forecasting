@@ -1,5 +1,5 @@
 from pipeline import ForecastingPipeline
-from config import settings
+from config.config import settings
 import joblib
 
 def train():
