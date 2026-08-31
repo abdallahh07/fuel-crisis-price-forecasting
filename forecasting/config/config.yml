@@ -4,11 +4,14 @@ data:
   crude_oil_prices: "data/raw/crude_oil_prices.csv"
   reddit_sentiment: "data/raw/reddit_sentiment.csv"
   us_gasoline_prices: "data/raw/us_gasoline_prices.csv"
-  us_refinery_and_trade_weekly: "us_refinery_and_trade_weekly.csv"
+  us_refinery_and_trade_weekly: "data/raw/us_refinery_and_trade_weekly.csv"
+
+target:
+  column: "wti_crude_close"
 
 columns:
+  all_columns:
     - "date"
-    - "wti_crude_close"       
     - "wti_crude_close"
     - "wti_crude_high"
     - "wti_crude_low"
@@ -33,12 +36,16 @@ columns:
     - "total_petroleum_product_imports_kbd"
     - "total_petroleum_product_exports_kbd"
     - "net_total_crude_and_product_imports_kbd"
- 
-split:
-  train_fraction:0.80
-  n_cv_split:5
 
-model : 
-  type:"lasso"
+split:
+  train_fraction: 0.80
+  n_cv_splits: 5
+
+model:
+  type: "lasso"
   alpha: 0.001
   max_iter: 50000
+
+artifacts:
+  model_path: "forecasting/trained_model.joblib"
+  scaler_path: "forecasting/scaler.joblib"
