@@ -2,8 +2,8 @@ from sklearn.linear_model import Lasso
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from data_manager import load_merge_data
-from features import create_x_and_y
+from processing.data_manager import load_merge_data
+from processing.features import create_x_and_y
 from config import settings
 
 
