@@ -1,10 +1,14 @@
 data:
-  country_gas_price_comparison: "data/raw/country_gas_price_comparison.csv"
-  crisis_timeline: "data/raw/crisis_timeline.csv"
-  crude_oil_prices: "data/raw/crude_oil_prices.csv"
-  reddit_sentiment: "data/raw/reddit_sentiment.csv"
-  us_gasoline_prices: "data/raw/us_gasoline_prices.csv"
-  us_refinery_and_trade_weekly: "data/raw/us_refinery_and_trade_weekly.csv"
+  country_gas_price_comparison: "../data/raw/country_gas_price_comparison.csv"
+  crisis_timeline: "../data/raw/crisis_timeline.csv"
+  crude_oil_prices: "../data/raw/crude_oil_prices.csv"
+  reddit_sentiment: "../data/raw/reddit_sentiment.csv"
+  us_gasoline_prices: "../data/raw/us_gasoline_prices.csv"
+  us_refinery_and_trade_weekly: "../data/raw/us_refinery_and_trade_weekly.csv"
+
+merge:
+  use_weekly: false
+  direction: "nearest"
 
 target:
   column: "wti_crude_close"
@@ -47,5 +51,5 @@ model:
   max_iter: 50000
 
 artifacts:
-  model_path: "forecasting/trained_model.joblib"
-  scaler_path: "forecasting/scaler.joblib"
+  model_path: "trained_model.joblib"
+  scaler_path: "scaler.joblib"
