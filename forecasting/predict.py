@@ -1,5 +1,5 @@
 import joblib
-from config import settings
+from config.config import settings
 
 def load_model():
     model = joblib.load(settings["artifacts"]["model_path"])
