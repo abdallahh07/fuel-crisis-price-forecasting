@@ -1,0 +1,44 @@
+data:
+  country_gas_price_comparison: "data/raw/country_gas_price_comparison.csv"
+  crisis_timeline: "data/raw/crisis_timeline.csv"
+  crude_oil_prices: "data/raw/crude_oil_prices.csv"
+  reddit_sentiment: "data/raw/reddit_sentiment.csv"
+  us_gasoline_prices: "data/raw/us_gasoline_prices.csv"
+  us_refinery_and_trade_weekly: "us_refinery_and_trade_weekly.csv"
+
+columns:
+    - "date"
+    - "wti_crude_close"       
+    - "wti_crude_close"
+    - "wti_crude_high"
+    - "wti_crude_low"
+    - "wti_crude_open"
+    - "wti_crude_volume"
+    - "brent_crude_close"
+    - "brent_crude_high"
+    - "brent_crude_low"
+    - "brent_crude_open"
+    - "brent_crude_volume"
+    - "natural_gas_close"
+    - "natural_gas_high"
+    - "natural_gas_low"
+    - "natural_gas_open"
+    - "natural_gas_volume"
+    - "refinery_utilization_pct"
+    - "refinery_crude_inputs_kbd"
+    - "refinery_gross_inputs_kbd"
+    - "refinery_operable_capacity_kbd"
+    - "crude_oil_imports_kbd"
+    - "crude_oil_exports_kbd"
+    - "total_petroleum_product_imports_kbd"
+    - "total_petroleum_product_exports_kbd"
+    - "net_total_crude_and_product_imports_kbd"
+ 
+split:
+  train_fraction:0.80
+  n_cv_split:5
+
+model : 
+  type:"lasso"
+  alpha: 0.001
+  max_iter: 50000
